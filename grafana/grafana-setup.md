@@ -24,6 +24,7 @@ from(bucket: "lora_sensor")
   |> range(start: -24h)
   |> filter(fn: (r) => r._measurement == "device_frmpayload_data_temperature")
   |> filter(fn: (r) => r._field == "value")
+<img width="1920" height="917" alt="sıcalık" src="https://github.com/user-attachments/assets/558e8e6d-c721-424c-bf1c-c34b9ffbd540" />
 
 
 
@@ -43,6 +44,7 @@ from(bucket: "lora_sensor")
   |> filter(fn: (r) => r._measurement == "device_frmpayload_data_humidity")
   |> filter(fn: (r) => r._field == "value")
  
+<img width="1917" height="926" alt="nem" src="https://github.com/user-attachments/assets/ecb822b7-ccd9-4731-afe8-7d45dbb2c38b" />
 
 
   
@@ -59,3 +61,4 @@ from(bucket: "lora_sensor")
   |> range(start: -24h)
   |> filter(fn: (r) => r._measurement == "device_frmpayload_data_distance")
   |> filter(fn: (r) => r._field == "value")
+<img width="1918" height="926" alt="mesafe" src="https://github.com/user-attachments/assets/42cdfe2c-536d-481f-a9c0-f9d56f1158b6" />
