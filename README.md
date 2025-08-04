@@ -1,161 +1,121 @@
 # Akıllı Çevre İzleme Sistemi - LoRa Gateway Modülü
 
-Bu klasör, çevresel sensör verilerini alan LoRa Gateway modülünün yazılımını içermektedir. Gateway tarafında, ESP32 mikrodenetleyici kullanılarak RAK3172 LoRa modülü ile haberleşme sağlanır. Alınan veriler UART üzerinden ESP32’ye aktarılır ve Wi-Fi bağlantısı üzerinden sunucuya iletilmek üzere hazırlanabilir.
+Bu klasör, çevresel sensör verilerini LoRa P2P protokolü kullanarak alacak bir gateway modülü için geliştirilen yazılımı içermektedir. Gateway tarafında ESP32 mikrodenetleyicisi kullanılarak, UART haberleşmesi yoluyla RAK3172 LoRa modülüyle iletilen veriler alınmakta ve gerekirse sunucuya aktarılmaya hazırlanmaktadır.
 
 ---
 
-## Proje Amacı
+## 📍 Projenin Genel Amacı
 
-- Uzun menzilli, düşük güç tüketimli kablosuz haberleşme ile çevresel verilerin toplanması.
-- LoRa P2P haberleşmesiyle sensör düğümlerinden gelen verilerin alınması.
-- Verilerin işlenerek daha sonra merkezi sunuculara (örneğin: InfluxDB, Flask, MQTT) iletilmesi için temel gateway yapısının kurulması.
-
----
-
-##  Donanım Bileşenleri
-
-| Bileşen              | Model / Tip                       |
-|----------------------|-----------------------------------|
-| Mikrodenetleyici     | ESP32 DevKit v1                   |
-| LoRa Modülü          | RAK3172 (AT komutları ile kontrol edilen) |
-| Güç bağlantısı       | USB 5V (ESP32 üzerinden)          |
-| Sensörler (node tarafında) | DHT11/22, MQ-135, BH1750 vb.   |
+* Uzun menzilli, düşük güç tüketimli haberleşme ile farklı lokasyonlardan veri toplamak.
+* LoRa P2P protokolüyle sensör düğümlerinden gelen verileri kablosuz olarak almak.
+* Alınan verileri çözümleyerek sunucuya (MQTT, HTTP, WebSocket vs.) iletmek üzerine altyapı oluşturmak.
+* Sistemi InfluxDB + Grafana gibi bir ortamda görselleştirilebilir hale getirmek.
 
 ---
 
-##  Donanım Bağlantıları
+## 🔧 Kullanılan Donanım ve Bağlantılar
 
-### RAK3172 ↔ ESP32 UART Bağlantısı:
+| Donanım Bileşeni | Model / Tip      | Görevi                         |
+| ---------------- | ---------------- | ------------------------------ |
+| Mikrodenetleyici | ESP32 DevKit     | UART, Wi-Fi ve genel kontrol   |
+| LoRa Modülü      | RAK3172          | P2P veri alışverişi            |
+| Sensörler        | (Node tarafında) | Veri oluşturur (temp, nem vb.) |
 
-| RAK3172 Pin | ESP32 GPIO | Açıklama                   |
-|-------------|-------------|----------------------------|
-| TXD         | GPIO 16     | RAK3172’den veri alımı     |
-| RXD         | GPIO 17     | ESP32’den veri gönderimi   |
-| GND         | GND         | Ortak toprak hattı         |
-| VCC         | 3.3V        | Güç bağlantısı (**5V verilmemeli**) |
+### UART Bağlantıları:
 
-> Not: UART2 kullanılıyor, ESP32’de `HardwareSerial(2)` olarak tanımlanmış.
+* RAK3172 TX  →  ESP32 GPIO16 (RX)
+* RAK3172 RX  →  ESP32 GPIO17 (TX)
+* RAK3172 VCC →  3.3V
+* RAK3172 GND →  GND
+
+> Not: RAK3172 5V toleranslı değildir. 3.3V besleme kullanılmalıdır.
 
 ---
 
-##  Klasör Yapısı
+## 📁 Proje Klasör Yapısı
 
 ```
 LoRa_to_gateway/
-│
-├── LoRa_Receiver.ino       → ESP32 kodu (RAK3172’den AT komutlarıyla veri alma)
-├── sendATCommand.h         → AT komutu gönderme yardımcı fonksiyonu
-└── README.md               → Proje açıklaması (bu dosya)
+├── LoRa_Receiver.ino      # ESP32 ana kodu
+├── sendATCommand.h        # AT komutu gönderimi için yardımcı fonksiyon
+└── README.md              # Bu dosya
 ```
 
 ---
 
-##  Sistem Akışı
+## 🚀 Sistem Akışı ve Veri Yolculuğu
 
 ```
-[Sensor Node (LoRa Sender)]
-  →→→  LoRa P2P iletişimi
-[ESP32 + RAK3172 (Gateway)]
-  →→→  UART ile veri alımı
-  →→→  Wi-Fi ile sunucuya gönderim (opsiyonel)
-[InfluxDB / Flask / MQTT (Sunucu)]
-  →→→  Grafana ile görselleştirme
-```
-
----
-
-##  Kullanılan AT Komutları (RAK3172 için)
-
-| Komut                          | Açıklama                                    |
-|--------------------------------|---------------------------------------------|
-| `AT`                           | Cihaza bağlantı kontrolü                    |
-| `AT+VER=?`                     | Donanım/sürüm bilgisi                       |
-| `AT+DEVEUI=?`                  | Cihaz EUI bilgisini gösterir               |
-| `AT+NWM=0`                     | LoRaWAN yerine P2P modunu aktif eder       |
-| `AT+P2P=868250000:7:125:0:10:14` | P2P frekans ve parametre tanımı (EU868)    |
-| `AT+PRECV=0`                   | Cihazı sürekli dinleme moduna alır         |
-
-> Not: AT komutları arası `delay()` süreleri uygulanarak, cihazın cevap verebilmesi sağlanmalıdır.
-
----
-
-##  Kodun Açıklaması
-
-### `LoRa_Receiver.ino`
-- UART2 üzerinden RAK3172 ile haberleşir.
-- `sendATCommand()` fonksiyonu ile AT komutları gönderilir.
-- `Serial2.readString()` ile gelen veri okunur.
-- Gelecek sürümde gelen veri JSON parse edilerek MQTT veya HTTP ile sunucuya gönderilebilir.
-
-### `sendATCommand.h`
-```cpp
-void sendATCommand(String command, unsigned long timeout) {
-  RAK3172.println(command);
-  delay(100);
-  unsigned long t = millis();
-  while (millis() - t < timeout) {
-    if (RAK3172.available()) {
-      Serial.write(RAK3172.read());
-    }
-  }
-}
+[Sensor Node (ESP32 + RAK3172 + Sensör)]
+     ↦  LoRa P2P
+[Gateway (ESP32 + RAK3172)]
+     ↦  UART ile veri alımı
+     ↦  Wi-Fi ile MQTT/HTTP ile sunucuya gönderim
+[Sunucu: InfluxDB]
+     ↦  [Grafana] ile veri görselleştirme
 ```
 
 ---
 
-##  Veri Aktarımı (Sonraki Adım)
+## 📃 RAK3172 ile Kullanılan AT Komutları
 
-> Bu aşama henüz kodda yok ancak ileride eklenebilir:
-
-- **WiFi bağlantısı kurulup** ESP32, gelen veriyi bir MQTT sunucusuna gönderebilir.
-- Alternatif olarak HTTP POST isteği ile veriler Flask gibi bir backend'e yönlendirilebilir.
-- Bu veriler sunucu tarafında **InfluxDB**'ye yazılarak **Grafana** ile görselleştirilebilir.
-
----
-
-##  Grafana Görselleştirme (Varsayım)
-
-Grafana tarafında, veri şu şekilde görselleştirilebilir:
-- Sensör bazlı paneller (örn: sıcaklık, nem)
-- Cihaz kimliğine göre filtreleme
-- Zaman serisi grafikler
+| Komut                            | Açıklama                    |
+| -------------------------------- | --------------------------- |
+| `AT`                             | Bağlantı testi              |
+| `AT+VER=?`                       | Sürüm bilgisi               |
+| `AT+DEVEUI=?`                    | Cihaz EUI                   |
+| `AT+NWM=0`                       | P2P modunu aktif eder       |
+| `AT+P2P=868250000:7:125:0:10:14` | Frekans ve özellikler ayarı |
+| `AT+PRECV=0`                     | Sürekli dinleme moduna alır |
 
 ---
 
-##  Kurulum Adımları
+## 📊 Kodun Temel Mantığı
 
-1. Arduino IDE’yi açın.
-2. ESP32 kart tanımını yükleyin (`ESP32 Dev Module`).
-3. `LoRa_Receiver.ino` dosyasını açın.
-4. RX ve TX pinlerini ESP32’ye göre ayarlayın.
-5. Kodu ESP32'ye yükleyin.
-6. Seri Monitör üzerinden RAK3172'nin verdiği AT yanıtlarını ve gelen veriyi gözlemleyin.
+* ESP32, `HardwareSerial(2)` ile UART2 kullanarak RAK3172 ile haberleşir.
+* `sendATCommand()` fonksiyonuyla AT komutları gönderilir.
+* `Serial2.readString()` ile gelen veri okunur ve `Serial` portundan yazdırılır.
+* Gelişmiş versiyonlarda bu veri çözülerek MQTT veya HTTP üzerinden gönderilir.
 
 ---
 
-## Geliştirme Notları
+## 📝 Kurulum Adımları
 
-- LoRa bağlantısı kurulduğunda, diğer node cihazlarından gelen veri otomatik olarak seri porta düşer.
-- Şimdilik yalnızca veri alımı yapılmaktadır. Gönderim veya doğrulama mekanizması (CRC, kimlik kontrolü) eklenmemiştir.
-- İleride gelen veri içeriği parse edilerek bulut tabanlı servislere aktarılabilir.
-
----
-
-##  Önerilen Geliştirmeler
-
-- Gelen verinin JSON olarak ayrıştırılması
-- MQTT üzerinden veri gönderimi
-- Web dashboard'da veri canlı izleme
-- OTA güncelleme desteği (ESP32 için)
+1. Arduino IDE kurun, ESP32 kart tanımını ekleyin.
+2. RX (16), TX (17) pinlerine UART2 tanımı yapın.
+3. `LoRa_Receiver.ino` dosyasını ESP32'ye yükleyin.
+4. Seri monitörü 115200 baud ile açın.
+5. Gelen verileri ve AT cevaplarını gözlemleyin.
 
 ---
 
-## Lisans
+## 🌐 Sunucuya Veri Aktarımı (Opsiyonel Katman)
 
-Bu proje MIT lisansı ile yayımlanmıştır. Ticari ve kişisel kullanım serbesttir.
+* ESP32 Wi-Fi ile ağa bağlanır.
+* Gelen veriler MQTT broker'ına veya bir REST API'ye gönderilir.
+* Sunucuda bu veriler InfluxDB'ye kaydedilir.
+* Grafana paneli ile izlenebilir.
 
 ---
 
-##  Katkıda Bulunanlar
+## 🔄 Geliştirme Önerileri
 
-Proje, öğrenme ve uygulama amacıyla geliştirilmiştir. Katkılar için pull request gönderebilirsiniz.
+* JSON çözümleme ve verilerin düzenli formatlanması
+* Hata kontrolü (CRC, zaman damgası, kimlik)
+* Web arayüz entegrasyonu (Grafik, uyarı, log)
+* OTA güncelleme desteği
+
+---
+
+## 📅 Lisans
+
+Bu proje MIT lisansı ile sunulmuştur. Kullanım ve geliştirme özgürdür.
+
+---
+
+## 👨‍💻 Katkı ve İletişim
+
+Pull request ve önerilere açığız. Her türlü katkı için teşekkür ederiz.
+
+```
+```
