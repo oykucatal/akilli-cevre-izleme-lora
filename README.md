@@ -115,7 +115,4 @@ Bu proje MIT lisansı ile sunulmuştur. Kullanım ve geliştirme özgürdür.
 
 ## 👨‍💻 Katkı ve İletişim
 
-Pull request ve önerilere açığız. Her türlü katkı için teşekkür ederiz.
 
-```
-```
