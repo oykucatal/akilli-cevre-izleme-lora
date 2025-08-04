@@ -1,16 +1,40 @@
 # 📊 Grafana Panel Kurulumu
-#######################################################
+
+Bu belgede, InfluxDB veritabanına gönderilen sensör verilerinin görselleştirilmesi amacıyla kullanılan **Grafana** uygulamasının kurulumu, servis olarak yapılandırılması ve web arayüzüne erişim adımları anlatılmaktadır.  
+Grafana sayesinde sıcaklık, nem ve mesafe gibi sensör değerleri anlık ve tarihsel olarak görselleştirilerek izlenebilir hale getirilmiştir.
+
+ 1. Grafana'nın sunucuya kurulumu
+
+Kurulum, `.tar.gz` arşiv dosyası kullanılarak manuel şekilde yapılmıştır. Bunun sebebi, ortamda `apt` ya da `yum` gibi paket yöneticilerinin kullanılamadığı veya belirli bir versiyonun tercih edilmek istenmesidir.
+
+wget https://dl.grafana.com/oss/release/grafana-10.2.3.linux-amd64.tar.gz
+ 
+![Kurulum](Grafana_setup_1.png)
+
+Grafana, ~/lora_grafana/grafana-v10.2.3/ klasörüne kurulmuştur.
+
+Bu yapı sayesinde:
+Birden fazla versiyon aynı sunucuda yan yana tutulabilir, kurulum dosyaları sistem dizinlerine dağılmaz,güncellemelerde sadece bu klasör hedeflenir
+
+2. Grafana için Systemd Servisi Oluşturma
+
+Grafana’nın terminalden manuel olarak her seferinde başlatılmaması için bir systemd servis dosyası oluşturulmuştur.
+Bu sayede Grafana, sistem her açıldığında otomatik başlatılır ve arkaplanda kesintisiz çalışır.
+
+Servis dosyası aşağıdaki komutla oluşturulmuştur:
+sudo nano /etc/systemd/system/grafana.service
+
+![Kurulum](Grafana_setup_2.png)
+
+  3. Web arayüzüne erişim
+
+Grafana servisi başarıyla çalıştıktan sonra, uygulama 3000 numaralı port üzerinden erişilebilir hale gelir.
+Bu portu sunucunun dış IP’si ile tarayıcıdan açarak web paneline ulaşmak mümkündür.
+
+![Kurulum](Grafana_setup_3.png)
 
 
-
-
-
-
-
-
-
-#######################################################
- 1. Sıcaklık Sensörü Paneli
+ 4. Sıcaklık Sensörü Paneli
 Görev: 
 Cihazlardan gelen sıcaklık verisini °C cinsinden zaman serisi olarak grafiğe döker.
 Measurement (Ölçüm Adı):** `device_frmpayload_data_temperature`  
@@ -28,7 +52,7 @@ from(bucket: "lora_sensor")
 
 
 
-2. Nem Sensörü Paneli
+5. Nem Sensörü Paneli
 Açıklama:
 Nem sensörleri, ölçtükleri ortam nem oranını yüzde cinsinden (örneğin 45%) InfluxDB’ye gönderir. Bu veriler `device_frmpayload_data_humidity` adlı measurement altında `value` alanında tutulur.  
 Grafana, bu verileri InfluxDB'den alır ve zamana göre çizilen grafik ile kullanıcıya sunar.
@@ -48,7 +72,7 @@ from(bucket: "lora_sensor")
 
 
   
-  3. Mesafe Sensörü Paneli
+  6. Mesafe Sensörü Paneli
 Görev:
 Ortamda algılanan nesneye olan uzaklığı zaman serisi grafikle gösterir.
 Measurement: device_frmpayload_data_distance
