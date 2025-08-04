@@ -8,16 +8,16 @@ Bu döküman, SSH anahtarıyla bir Ubuntu sunucusuna bağlanarak `.tar.gz` forma
 
 Sunucuya güvenli bağlantı şu komutla sağlandı:
 
-ssh srvadmin@<ip adresi>
+ssh srvadmin@<ip_adresi>
 
 Adından şifre girilerek sunucuya giriş sağlandı.
 
-<ssh_bağlantısı.png>
+![SSH Bağlantısı](assets/ssh_bağlantısı.jpg)
 
 # 2. .tar.gz ile InfluxDB Kurulumu
 Aşağıdaki adımlarla .tar.gz formatında InfluxDB indirildi ve kuruldu:
 
-<kurulum.png>
+![Kurulum](assets/kurulum.png)
 
 wget https://dl.influxdata.com/influxdb/releases/influxdb2-<versiyon>-linux-amd64.tar.gz
 tar -xvzf influxdb2-<versiyon>-linux-amd64.tar.gz
@@ -28,7 +28,7 @@ Kurulan InfluxDB’yi 7/24 çalışır hâle getirmek için aşağıdaki gibi bi
 
 sudo nano /etc/systemd/system/influxdb.service
 
-<servis.png>
+![Servis](assets/7-24_servis.png)
 
 sudo systemctl daemon-reexec
 sudo systemctl enable influxdb
@@ -40,7 +40,8 @@ Tarayıcı üzerinden aşağıdaki gibi InfluxDB arayüzüne erişildi:
 
 http://<ip_adresi>:8086
 Sunucu dışarıya açıldığı için farklı cihazlardan yönetim arayüzüne giriş mümkün oldu.
-<influx.png>
+
+![Influx Arayüzü](assets/influx.png)
 
 # 5. İlk Yapılandırma: Kullanıcı, Org, Bucket, Token
 
@@ -52,13 +53,13 @@ organization ismi girildi
 
 lora_sensor adlı bucket oluşturuldu
 
-<bucket.png>
+![Bucket](assets/bucket.png)
 
 API Token Key üretildi
 
-<token.png>
+![Token](assets/token.png)
 
 # 6. ChirpStack ile Entegrasyon
 InfluxDB'den oluşturulan API Token Key, ChirpStack arayüzüne aşağıdaki şekilde eklendi:
 
-<chirpstack.png>
+![ChirpStack](assets/chirpstack.png)
